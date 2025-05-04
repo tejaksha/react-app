@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Search from './components/Search.jsx'
 import Spinner from './components/Spinner.jsx'
 import MovieCard from './components/MovieCard.jsx'
+import { useDebounce } from 'react-use'
 const API_BASE_URL = 'https://api.themoviedb.org/3'
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY
 const API_OPTIONS = {
@@ -17,14 +18,20 @@ const App = () => {
   const [errorMessage, setErrorMessage] = useState('')
   const [moviesList, setMoviesList] = useState([])
   const [isLoading, setIsLoading] = useState(false)
+  const [ debouncedSearchTerm, setDebouncedSearchTerm ] = useState('')
+  useDebounce(() => setDebouncedSearchTerm(searchTerm), 500, [searchTerm])
+
   
   const fetchMovies = async (query = '') => {
     try {
         setIsLoading(true)
         setErrorMessage('')
-        const endpoint = `${API_BASE_URL}/discover/movie?include_adult=false&include_video=false&language=en-US&page=1&sort_by=popularity.desc`
+        const endpoint = query ?  
+        `${API_BASE_URL}/search/movie?query=${encodeURIComponent(query)}&include_adult=false&include_video=false&language=en-US&page=1`
+        :
+        `${API_BASE_URL}/discover/movie?include_adult=false&include_video=false&language=en-US&page=1&sort_by=popularity.desc`
         const response = await fetch(endpoint, API_OPTIONS)
-        console.log(API_KEY)
+        // console.log(API_KEY)
         if (!response.ok) {
             throw new Error('Network response was not ok')
         }
@@ -36,17 +43,19 @@ const App = () => {
         }
         setMoviesList(data.results || [])
         setIsLoading(false)
-        console.log(data)
+        // console.log(data)
     } catch (error) {
-      console.error('Error fetching movies:', error)
+      // console.error('Error fetching movies:', error)
       setErrorMessage('Error fetching movies. Please try again later.')
     }finally {
       setIsLoading(false)
     }
   }
+
   useEffect(() => {
-    fetchMovies(searchTerm)
-  }, [searchTerm])
+    fetchMovies(debouncedSearchTerm)
+  }, [debouncedSearchTerm])
+
   return (
     <main>
       <div className='pattern'>
@@ -70,9 +79,6 @@ const App = () => {
               </ul>
             )}
           </section>
-          
-
-          <h1 className='text-white text-3xl'>{searchTerm}</h1>
         </div>
       </div>
     </main>
